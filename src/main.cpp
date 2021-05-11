@@ -4,96 +4,70 @@
 
 #include <iostream>
 #include <SDL2/SDL.h>
+#include "Screen.h"
+#include <math.h>
+#include <time.h>
+#include <stdlib.h>
+#include "Swarm.h"
 
 using namespace std;
+using namespace GameTUT;
 
 int main() {
 
-    const int SCREEN_WIDTH = 800;
-    const int SCREEN_HEIGHT = 600;
+    srand(time(NULL));
 
-    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-        cout << "SDL init failed." << endl;
-        return 1;
+    Screen screen;
+    if (!screen.init()) {
+        cout << "Error initalising SDL." << endl;
     }
 
-    //Creating the window
-    SDL_Window *window = SDL_CreateWindow("Particle Fire Explosion", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                          SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
-    // Checking if window works
-    if(window == NULL) {
-        SDL_Quit();
-        return 2;
-    }
-
-    // Setting Renderer and texture
-    SDL_Renderer * renderer = SDL_CreateRenderer(window, -1 , SDL_RENDERER_PRESENTVSYNC);
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888
-                                             ,SDL_TEXTUREACCESS_STATIC, SCREEN_WIDTH,SCREEN_HEIGHT);
+    Swarm swarm;
 
 
-    // Checking Renderer and Texture
-    if(renderer == NULL) {
-        cout << "Renderer Broken" << endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 3;
-    }
-    if(texture == NULL) {
-        cout << "Texture Broken" << endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        SDL_DestroyRenderer(renderer);
-        return 4;
-    }
-    // Buffering memory
-    Uint32 *buffer = new Uint32[SCREEN_WIDTH * SCREEN_HEIGHT];
+    while (true) {
+        const Particle * const pParticles = swarm.getParticles();
+
+        int elapsed = SDL_GetTicks();
+        unsigned char green = (1 + sin(elapsed * .001)) * 128;
+        unsigned char red = (1 + sin(elapsed * .002)) * 128;
+        unsigned char blue = (1 + sin(elapsed * .003)) * 128;
+
+        swarm.update(elapsed);
+
+        screen.clear();
+        for (int i = 0; i<Swarm::NPARTICLES; i++) {
+            Particle particle = pParticles[i];
+
+            int x = (particle.m_x + 1) * Screen::SCREEN_WIDTH/2;
+            int y = particle.m_y * Screen::SCREEN_WIDTH/2+ Screen::SCREEN_HEIGHT/2;
+            screen.setPixel(x,y, red,green,blue);
+
+//            screen.setPixel(x-1,y, red,green,blue);
+//            screen.setPixel(x+1,y, red,green,blue);
+//            screen.setPixel(x+2,y, red,green,blue);
+//            screen.setPixel(x+3,y, red,green,blue);
+//            screen.setPixel(x+4,y, red,green,blue);
+
+        }
 
 
-    // Setting up memory
-
-    memset(buffer, 0, SCREEN_WIDTH * SCREEN_HEIGHT *sizeof(Uint32));
-
-
-    // Creating pixel
-    buffer[30000] = 0xf50000;
-
-    for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++) {
-        buffer[i] = 0xf50000;
-    }
-    for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT/2; i++) {
-        buffer[i] = 0x000FFFF;
-    }
-    // Updating and setting event and quit values
-
-    bool quit = false;
-    SDL_Event event;
-
-    SDL_UpdateTexture(texture, NULL, buffer, SCREEN_WIDTH * sizeof(Uint32));
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-
-    // Main Game loop
-
-    while (!quit) {
+//        for (int y = 0; y < Screen::SCREEN_HEIGHT; y++) {
+//            for (int x = 0; x < Screen::SCREEN_WIDTH; x++) {
+//                screen.setPixel(x, y, red, green, blue);
+//            }
+//        }
 
 
-        // Check for quit && Quit
-        while(SDL_PollEvent(&event)) {
-            if(event.type == SDL_QUIT) {
-                quit = true;
-            }
+//        screen.setPixel(400, 300, 255, 255, 255);
+
+        screen.update();
+        if (!screen.processEvents()) {
+            break;
         }
     }
 
-
-    // Cleaning up
-    delete [] buffer;
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyTexture(texture);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    screen.close();
 
     return 0;
 }
